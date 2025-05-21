@@ -29,8 +29,7 @@ const userSchema = new Schema({
         required:true,  
     },
     coverimage:{
-        
-type:String,//Cloudinary url
+        type:String,//Cloudinary url
     },
     watchhistory:[
         {
@@ -59,7 +58,7 @@ type:String,//Cloudinary url
         next(); 
     });
 
-    useerSchema.methods.isPasswordCorrect = async function (password){
+    userSchema.methods.isPasswordCorrect = async function (password){
         bcrypt.compare(password, this.password)
         .then((result) => {
             return result;
