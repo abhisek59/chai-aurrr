@@ -1,68 +1,74 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
-import apiError from "../utils/apiError.js";
+import {ApiError} from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
-import {uploadOnCloudinary} from "../utils/cloudnary.js";
+import { uploadOnCloudinary } from "../utils/cloudnary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 
 const registerUser = asyncHandler(async (req, res) => {
-   //get user data from front end
-   //validation  like if username is empty or not and passwoord is 
-   //check if user already exists check from username and email
-   //check for images and avatars
-   //upload them to cloudnary
-   //create user object- create entry in db
-   //remove password and refresh token from response
-   //check for user creation
-   //return response
-
-   const {fullName,username,email,password}=req.body
-   console.log("email",email);
-   if ([
-        fullName,
-        username,
-        email,
-        password
-    ].some((item) =>item?.trim()==="")) {
-       throw new apiError("Please fill all the fields", 400);   
+  try{
+    const { fullName, username, email, password } = req.body;
+console.log("username",username)
+    // Check if the request contains files
+    // Validate required fields
+    if ([fullName, username, email, password].some((field) => !field?.trim())) {
+        throw new ApiError("All fields are required", 400);
     }
-    const existedUser=User.findOne({$or:[{username},{email}]})
-    .then((user) => {
-        if (existedUser) {
-            throw new apiError("User already exists", 400);
+
+    // Check if user already exists
+    const existedUser = await User.findOne({
+        $or: [{ username }, { email }]
+    });
+
+    if (existedUser) {
+        throw new ApiError("User with email or username already exists", 409);
+    }
+
+    // Handle file uploads
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    const coverImagePath = req.files?.coverImage?.[0]?.path;
+
+    if (!avatarLocalPath) {
+        throw new ApiError("Avatar file is required", 400);
+    }
+
+    // Upload to cloudinary
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    const coverImage = coverImagePath ? await uploadOnCloudinary(coverImagePath) : null;
+
+    if (!avatar) {
+        throw new ApiError("Avatar file upload failed", 400);
+    }
+
+    // Create user
+    const user = await User.create({
+        fullName,
+        username: username.toLowerCase(),
+        email,
+        password,
+        avatar: avatar.url,
+        coverImage: coverImage?.url || ""
+    });
+
+    const createdUser = await User.findById(user._id)
+        .select("-password -refreshToken");
+
+    if (!createdUser) {
+        throw new ApiError("User creation failed", 500);
+    }
+
+    return res.status(201).json(
+        new ApiResponse(201, createdUser, "User registered successfully")
+    );}
+    catch (error) {
+        if (error instanceof ApiError) {
+            return res.status(error.statusCode).json(
+                new ApiResponse(error.statusCode, null, error.message)
+            );
         }
-
-
-    })
-  const avatarLocalPath =  req.files?.avatar[0]?.path;
-  constcoverLocationPath = req.files?.coverImafe[0]?.path;
-  if(!avatarLocalPath || !coverLocationPath){
-    throw new apiError("Please upload images", 400);
-  }
-  const avatar= await uploadOnCloudinary(avatarLocalPath)
-   const cover = await uploadOnCloudinary(coverLocationPath)
-   if(!avatar || !cover){
-    throw new apiError("Image upload failed", 400);
-   }
-   const user = await User.create({
-    fullName,
-    username:username.toLowerCase(),
-    email,
-    password,
-    avatar: avatar.url,
-    coverImage:cover.urlImage?.url ||"",
-   })
-   const createdUser = await User.findById(user._id).select("-password -refreshToken")
-
-   if (!createdUser) {
-    throw new apiError("User creation failed", 500);
-   }
-
-   return res.status(201).json(
-    new ApiResponse(201, createdUser,"User created successfully")
-   );
+        return res.status(500).json(
+            new ApiResponse(500, null, "Internal server error")
+        );
+    }
 });
 
-
 export { registerUser };
-
-

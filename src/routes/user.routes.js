@@ -15,9 +15,16 @@ router.route("/register").post(
             maxCount:1,
         }
     ]),
-    registerUser);
+    registerUser
 
-export default router;
+)
+ router.post("/login", (req, res) => {
+    res.send("Login route");
+}
+);
+
+
+export {router}
 
 
 
