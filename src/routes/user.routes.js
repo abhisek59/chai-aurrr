@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { registerUser } from "../controllers/user.controller.js";
-import { upload } from "../middlewears/multer.middlewear.js";
-
+import {upload}
+    from "../middlewears/multer.middlewear.js";
 const router = Router();
 
 router.route("/register").post( 
@@ -18,10 +18,8 @@ router.route("/register").post(
     registerUser
 
 )
- router.post("/login", (req, res) => {
-    res.send("Login route");
-}
-);
+
+
 
 
 export {router}

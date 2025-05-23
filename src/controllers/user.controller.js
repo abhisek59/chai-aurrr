@@ -53,7 +53,7 @@ console.log("username",username)
         .select("-password -refreshToken");
 
     if (!createdUser) {
-        throw new ApiError("User creation failed", 500);
+        throw new ApiError("User creation failed", 500)
     }
 
     return res.status(201).json(
