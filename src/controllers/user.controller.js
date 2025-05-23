@@ -6,11 +6,11 @@ import { ApiResponse } from "../utils/apiResponse.js";
 
 const registerUser = asyncHandler(async (req, res) => {
   try{
-    const { fullName, username, email, password } = req.body;
+    const { fullname, username, email, password } = req.body;
 console.log("username",username)
     // Check if the request contains files
     // Validate required fields
-    if ([fullName, username, email, password].some((field) => !field?.trim())) {
+    if ([fullname, username, email, password].some((field) => !field?.trim())) {
         throw new ApiError("All fields are required", 400);
     }
 
@@ -32,21 +32,21 @@ console.log("username",username)
     }
 
     // Upload to cloudinary
-    const avatar = await uploadOnCloudinary(avatarLocalPath);
-    const coverImage = coverImagePath ? await uploadOnCloudinary(coverImagePath) : null;
+    // const avatar = await uploadOnCloudinary(avatarLocalPath);
+    // const coverImage = coverImagePath ? await uploadOnCloudinary(coverImagePath) : null;
 
-    if (!avatar) {
-        throw new ApiError("Avatar file upload failed", 400);
-    }
+    // if (!avatar) {
+    //     throw new ApiError("Avatar file upload failed", 400);
+    // }
 
     // Create user
     const user = await User.create({
-        fullName,
+        fullname,
         username: username.toLowerCase(),
         email,
         password,
-        avatar: avatar.url,
-        coverImage: coverImage?.url || ""
+        avatar: avatarLocalPath,
+        coverImage: coverImagePath || "",
     });
 
     const createdUser = await User.findById(user._id)
@@ -60,15 +60,18 @@ console.log("username",username)
         new ApiResponse(201, createdUser, "User registered successfully")
     );}
     catch (error) {
+        console.log("Error",error)
         if (error instanceof ApiError) {
             return res.status(error.statusCode).json(
                 new ApiResponse(error.statusCode, null, error.message)
             );
+            
         }
         return res.status(500).json(
             new ApiResponse(500, null, "Internal server error")
         );
     }
+
 });
 
 export { registerUser };
