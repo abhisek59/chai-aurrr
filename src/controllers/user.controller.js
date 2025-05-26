@@ -4,6 +4,23 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudnary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 
+const generateAccessTokenAndRefreshToken = async(userId)=>{
+    try{
+     const user =   await User.findById(userId)
+     const accessToken = user.generateAccessToken();
+     const refreshToken = user.generateRefreshTocken();
+     user.refreshToken = refreshToken
+      await user.save({validateBeforeSave: false});
+      return {
+        accessToken,
+        refreshToken
+      };
+
+    }catch (error) {
+        throw new ApiError("something went wrong while generating tokens", 500);
+}
+}
+
 const registerUser = asyncHandler(async (req, res) => {
   try{
     const { fullname, username, email, password } = req.body;
@@ -74,4 +91,45 @@ console.log("username",username)
 
 });
 
-export { registerUser };
+const loginUser = asyncHandler(async(res,res)=>{
+//get username ansd password 
+//find the user
+//password check
+//access and refresh token
+//send token throuhj secured cookie
+//send response
+
+const {email,username,password}=req.body;
+
+if(!email|| ! username){
+    throw new ApiError("Email and username are required", 400);
+}
+  const user =await User.findOne({$or:[{email},{username}]})
+  if(!user){
+    throw new ApiError("User not found", 404);
+  }
+    const isPasswordValid=await user.isPasswordCorrect(password)
+     if(!isPasswordValid){
+    throw new ApiError("Password is incorrect", 404);
+  }
+
+  const {accessToken,refreshToken} = await generateAccessTokenAndRefreshToken(user._id)
+
+   const loggedInUser = User.findById(user._id).select ("-password -refreshToken");
+   
+   const options ={
+    httpOnly : true,
+    secure : true
+   }
+   return res
+   .status(200)
+   .cookie("accessToken", accessToken, options)
+   .cookie("refreshToken", refreshToken, options)
+   .json(
+    new ApiResponse(200, {user :loggedInUser, accessToken, refreshToken}, "User logged in successfully"     
+   )
+)
+
+
+})
+export { registerUser,loginUser };

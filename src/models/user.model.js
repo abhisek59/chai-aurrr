@@ -70,7 +70,7 @@ const userSchema = new mongoose.Schema({
     userSchema.methods.generateAccessToken =function(){
         return  jwt.sign({
             _id:this._id,
-            userName:this.userName,
+            username:this.userName,
             email:this.email,
             fullname:this.fullname,
         },
@@ -87,8 +87,4 @@ const userSchema = new mongoose.Schema({
     })
     }
     
-    
-
-    
-
 export const User = mongoose.model("User", userSchema);
