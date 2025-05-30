@@ -3,6 +3,7 @@ import { ApiError } from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudnary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
+import jwt from "jsonwebtoken";
 
 // ...existing generateAccessTokenAndRefreshToken and registerUser functions...
 
@@ -184,17 +185,40 @@ const logoutUser = asyncHandler(async(req, res) => {
     .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, {}, "User logged Out"))
 })
-const generateAccessTokenAndRefreshToken = asyncHandler(async (req, res) => {
-    const { userId } = req.body;
+const accessRefreshToken = asyncHandler(async(req,res)=>{
+   const incomingRefreshToken= req.cookie.refreshToken||req.body.refreshToken
+   if(!incomingRefreshToken){
+    throw new ApiError(400, "Refresh token is required")
+   }
+  try {
+     const decodedToken=   jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
+     const user =User.findById(decodedToken?._id)
+  if(!user){
+      throw new ApiError(404, "User not found")   
+  }
+  if(incomingRefreshToken !== user.refreshToken){
+      throw new ApiError(401, "Refresh token is expired or used")    
+  }
+  
+  const options = {
+      httpOnly: true,
+      secure: true    
+  }
+  const {accessToken,newRefreshToken}= await generateAccessAndRefereshTokens(user._id)
+   return res 
+   .status(200)
+   .cookie("accessToken", accessToken,options)
+   .cookie("refreshToken",newRefreshToken, options)
+   .json (new ApiResponse(200, {
+      accessToken,
+      refreshToken: newRefreshToken}, "Access and Refresh tokens generated successfully") )
+  
+  
+  } catch (error) {
+      throw new ApiError(401, error?.message || "Invalid refresh token")    
+    
+  }
 
-    if (!userId) {
-        throw new ApiError(400, "User ID is required");
-    }
-
-    const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(userId);
-
-    return res.status(200).json(
-        new ApiResponse(200, { accessToken, refreshToken }, "Tokens generated successfully")
-    );
-});
-export { registerUser, loginUser, logoutUser, generateAccessTokenAndRefreshToken };
+   
+})
+export { registerUser, loginUser, logoutUser, generateAccessAndRefereshTokens, accessRefreshToken };
