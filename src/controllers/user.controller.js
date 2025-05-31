@@ -254,9 +254,112 @@ const updateAccountDetails = asyncHandler(async(req,res)=>{
                 email:email,
                 password:password
             }
-        },{new:true})
+        },{new:true}).select("-password ")
         return res.status(200)
         .json(new ApiResponse(200, user, "User details updated successfully"))
 
 })
-export { registerUser, loginUser, logoutUser, generateAccessAndRefereshTokens, accessRefreshToken ,changeCurrentPassword,getCurrentUser};
+const updateUserAvatar = asyncHandler(async(req,res)=>{
+   const localPath= req.files?.path
+   if(!localPath){
+    throw new ApiError(400, "Avatar file is required")
+   }
+   const avatar = await uploadOnCloudinary(localPath)
+   if(!avatar){
+    throw new ApiError(400, "Avatar file is required")
+   }
+   const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                avatar: avatar.url
+            }
+        },
+        {new: true}
+    ).select("-password -refreshToken")
+   return res.status(200)
+   .json(new ApiResponse(200, user, "User avatar updated successfully"))
+
+    }) 
+  const updateUserCoverImage = asyncHandler(async(req,res)=>{
+        const localPath= req.files?.path
+        if(!localPath){
+         throw new ApiError(400, "Cover image file is required")
+        }
+        const coverImage = await uploadOnCloudinary(localPath)
+        if(!coverImage){
+         throw new ApiError(400, "Cover image file is required")
+        }
+        const user = await User.findByIdAndUpdate(
+             req.user?._id,
+             {
+                 $set: {
+                     coverImage: coverImage.url
+                 }
+             },
+             {new: true}
+         ).select("-password -refreshToken")
+        return res.status(200)
+        .json(new ApiResponse(200, user, "User cover image updated successfully"))
+     }) 
+
+const getUserChannelProfile = asyncHandler(async(res,res)=>{
+    const {username}=req.params
+    if(!username?.trim()){
+        throw new ApiError(400, "Username is required")
+    }
+  const channel=  User.aggregate([
+    {
+        $match:{
+            username:username?.toLowercase()
+        }
+    },{
+        $lookup:{
+            from:"Subscription",
+            localField:"-id",
+            foreignField:"channel",
+            as:"subscribers"
+    }
+},{
+    $lookup:{
+        from:"Subscription",
+        localField:"-id",
+        foreignField:"subscriber",
+        as:"subscribedTo"
+    }
+},
+{
+    $addFields:{
+        subscriberCount:{$size:"$subscribers"},
+        subscribedToCount:{$size:"$subscribedTo"}
+    },
+    isSubscribed: {
+        $cond:{
+            if:{
+                $in:[req.user?._id,"$subscribers.subscriber"]
+            },
+            then: true,
+            else: false 
+        }
+        }
+},{
+    $project:{
+        fullname:1,
+        username:1,
+        avatar:1,
+        coverImage:1,
+        subscriberCount:1,
+        subscribedToCount:1,
+        isSubscribed:1
+    }
+}
+
+    ])
+    console.log("channel: ", channel);
+    if(!channel?.length){
+        throw new ApiError(404, "Channel not found")
+    }
+    return res.status(200)
+    .json(new ApiResponse(200, channel, "Channel profile fetched successfully"))    
+})
+export { registerUser, loginUser, logoutUser, generateAccessAndRefereshTokens, accessRefreshToken ,changeCurrentPassword,getCurrentUser,updateUserAvatar,updateUserCoverImage,updateAccountDetails,getUserChannelProfile};
