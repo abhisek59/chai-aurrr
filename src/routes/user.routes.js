@@ -3,6 +3,7 @@ import { loginUser, logoutUser, registerUser,accessRefreshToken, changeCurrentPa
 import {upload} from "../middlewears/multer.middlewear.js";
 import { verifyJWT } from "../middlewears/auth.middleweas.js";
 import { User } from "../models/user.model.js";
+import { uploadVideo } from "../controllers/video.controller.js";
 const router = Router();
 
 router.route("/register").post( 
@@ -32,6 +33,21 @@ router.route("/updateUserCoverImage").patch(verifyJWT,upload.single("coverImage"
 router.route("/updateUserDetails").post(verifyJWT,updateAccountDetails)
 router.route("/updateUserWatchHistory").get(verifyJWT,getWatchHistory)
 router.route("/c/:uaername").get(verifyJWT,getUserChannelProfile)
+
+router.route("/uploadvideo").post(
+    verifyJWT,
+    upload.fields([
+        {
+            name: "videoFile",
+            maxCount: 1
+        },
+        {
+            name: "thumbnail",
+            maxCount: 1
+        }
+    ]),
+   uploadVideo
+);
 
 
 
