@@ -303,20 +303,20 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
         .json(new ApiResponse(200, user, "User cover image updated successfully"))
      }) 
 
-const getUserChannelProfile = asyncHandler(async(res,res)=>{
+const getUserChannelProfile = asyncHandler(async(req,res)=>{
     const {username}=req.params
     if(!username?.trim()){
         throw new ApiError(400, "Username is required")
     }
-  const channel=  User.aggregate([
+  const channel= await  User.aggregate([
     {
         $match:{
-            username:username?.toLowercase()
+            username:username?.toLowerCase()
         }
     },{
         $lookup:{
             from:"Subscription",
-            localField:"-id",
+            localField:"_id",
             foreignField:"channel",
             as:"subscribers"
     }
