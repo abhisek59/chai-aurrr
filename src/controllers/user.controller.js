@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudnary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 // ...existing generateAccessTokenAndRefreshToken and registerUser functions...
 
@@ -362,40 +363,56 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     return res.status(200)
     .json(new ApiResponse(200, channel, "Channel profile fetched successfully"))    
 })
-
-const getWatchHistory = asyncHandler(async(req,res)=>{
-   const user= await aggregate([{
-    $match:{
-        _id:new mongoose.Types.ObjectId(req.user._id)
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id)
+      }
     },
-    $lookup:{
-        from:"Video",
-        localField:"WatchHistory",
-        foreignField:"_id",
-        as:"watchHistoryVideos",pipeline :[{
-            $lookup:{
-        from:"User",
-        localField:"owner",
-        foreignField:"_id",
-        as:"owner",
-         pipeline:[(
-            {
-                $project:{
-                    fullname:1,
-                    username:1,
-                    avatar:1,
+    {
+      $lookup: {
+        from: "Video", // Ensure this matches your actual collection name
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistoryVideos",
+        pipeline: [
+          {
+            $lookup: {
+              from: "User", // Again, match actual collection name
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullname: 1,
+                    username: 1,
+                    avatar: 1
+                  }
                 }
+              ]
             }
-        )]
-        }
-    },{
-        $addFields:{
-            $first: "$owner"
-        }
+          },
+          {
+            $addFields: {
+              owner: { $arrayElemAt: ["$owner", 0] }
+            }
+          }
+        ]
+      }
     }
-]}}]
-    )
-   return res.status(200)
-   .json(new ApiResponse(200, user[0].watchHistory, "User watch history fetched successfully"))
-})
+  ]);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user[0]?.watchHistoryVideos || [],
+        "User watch history fetched successfully"
+      )
+    );
+});
+
 export { registerUser, loginUser, logoutUser, generateAccessAndRefereshTokens, accessRefreshToken ,changeCurrentPassword,getCurrentUser,updateUserAvatar,updateUserCoverImage,updateAccountDetails,getUserChannelProfile,getWatchHistory};
