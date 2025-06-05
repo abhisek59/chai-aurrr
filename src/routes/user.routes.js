@@ -48,7 +48,7 @@ router.route("/uploadvideo").post(
    uploadVideo
 );
 // router.route("/videos/:videoId").get(verifyJWT, getVideoById)
-router.route ("/updateVideo").patch(verifyJWT,upload.single("video"),updateVideo)
+router.route ("videos/:videoId").patch(verifyJWT,upload.single("video"),updateVideo)
 // router.route("/videos/:videoId")
 //     .get(verifyJWT, getVideoById)  
 //     .delete(verifyJWT, deleteVideo);  
