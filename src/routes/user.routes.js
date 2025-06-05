@@ -3,7 +3,7 @@ import { loginUser, logoutUser, registerUser,accessRefreshToken, changeCurrentPa
 import {upload} from "../middlewears/multer.middlewear.js";
 import { verifyJWT } from "../middlewears/auth.middleweas.js";
 import { User } from "../models/user.model.js";
-import { getVideoById, uploadVideo } from "../controllers/video.controller.js";
+import { getVideoById, updateVideo, uploadVideo } from "../controllers/video.controller.js";
 const router = Router();
 
 router.route("/register").post( 
@@ -32,7 +32,6 @@ router.route("/updateUserAvatar").patch(verifyJWT,upload.single("avatar"),update
 router.route("/updateUserCoverImage").patch(verifyJWT,upload.single("coverImage"),updateUserCoverImage)
 router.route("/updateUserDetails").post(verifyJWT,updateAccountDetails)
 router.route("/updateUserWatchHistory").get(verifyJWT,getWatchHistory)
-router.route("/c/:uaername").get(verifyJWT,getUserChannelProfile)
 
 router.route("/uploadvideo").post(
     verifyJWT,
@@ -48,11 +47,11 @@ router.route("/uploadvideo").post(
     ]),
    uploadVideo
 );
-router.route("/videos/:videoId").get(verifyJWT, getVideoById)
-router.route("/videos/:videoId")
-    .get(verifyJWT, getVideoById)  
-    .patch(verifyJWT, upload.single("thumbnail"), updateThumbnail)  
-    .delete(verifyJWT, deleteVideo);  
+// router.route("/videos/:videoId").get(verifyJWT, getVideoById)
+router.route ("/updateVideo").patch(verifyJWT,upload.single("video"),updateVideo)
+// router.route("/videos/:videoId")
+//     .get(verifyJWT, getVideoById)  
+//     .delete(verifyJWT, deleteVideo);  
 export {router}
 
 
