@@ -3,7 +3,7 @@ import { loginUser, logoutUser, registerUser,accessRefreshToken, changeCurrentPa
 import {upload} from "../middlewears/multer.middlewear.js";
 import { verifyJWT } from "../middlewears/auth.middleweas.js";
 import { User } from "../models/user.model.js";
-import { uploadVideo } from "../controllers/video.controller.js";
+import { getVideoById, uploadVideo } from "../controllers/video.controller.js";
 const router = Router();
 
 router.route("/register").post( 
@@ -48,9 +48,11 @@ router.route("/uploadvideo").post(
     ]),
    uploadVideo
 );
-
-
-
+router.route("/videos/:videoId").get(verifyJWT, getVideoById)
+router.route("/videos/:videoId")
+    .get(verifyJWT, getVideoById)  
+    .patch(verifyJWT, upload.single("thumbnail"), updateThumbnail)  
+    .delete(verifyJWT, deleteVideo);  
 export {router}
 
 
