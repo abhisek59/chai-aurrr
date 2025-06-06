@@ -18,9 +18,10 @@ app.use(express.json({
 }));
 
 app.use(express.urlencoded({
-    limit: '16KB',
     extended: true,
 }));
+app.use(express.json());
+
 
 app.use(express.static('public'));
 app.use(cookieParser());

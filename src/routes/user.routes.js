@@ -3,8 +3,9 @@ import { loginUser, logoutUser, registerUser,accessRefreshToken, changeCurrentPa
 import {upload} from "../middlewears/multer.middlewear.js";
 import { verifyJWT } from "../middlewears/auth.middleweas.js";
 import { User } from "../models/user.model.js";
-import { getVideoById, updateVideo, uploadVideo } from "../controllers/video.controller.js";
+import { deleteVideo, getAllVideos, getVideoById, togglePublishStatus, updateThumbnail, updateVideo, uploadVideo } from "../controllers/video.controller.js";
 const router = Router();
+
 
 router.route("/register").post( 
     upload.fields([
@@ -33,25 +34,43 @@ router.route("/updateUserCoverImage").patch(verifyJWT,upload.single("coverImage"
 router.route("/updateUserDetails").post(verifyJWT,updateAccountDetails)
 router.route("/updateUserWatchHistory").get(verifyJWT,getWatchHistory)
 
+
 router.route("/uploadvideo").post(
     verifyJWT,
     upload.fields([
-        {
-            name: "videoFile",
-            maxCount: 1
-        },
-        {
-            name: "thumbnail",
-            maxCount: 1
-        }
+        { name: "videoFile", maxCount: 1 },
+        { name: "thumbnail", maxCount: 1 }
     ]),
-   uploadVideo
+    uploadVideo
 );
-// router.route("/videos/:videoId").get(verifyJWT, getVideoById)
-router.route ("videos/:videoId").patch(verifyJWT,upload.single("video"),updateVideo)
-// router.route("/videos/:videoId")
-//     .get(verifyJWT, getVideoById)  
-//     .delete(verifyJWT, deleteVideo);  
+
+// Get video by ID
+router.route("/videos/:videoId").get(verifyJWT, getVideoById);
+
+// Update video info and optionally video file
+router.route("/videos/:videoId/update").patch(
+    verifyJWT,
+    upload.single("videoFile"),
+    updateVideo
+);
+
+// Update thumbnail
+router.route("/videos/:videoId/thumbnail").patch(
+    verifyJWT,
+    upload.single("thumbnail"),
+    updateThumbnail
+);
+
+// Toggle publish status
+router.route("/videos/:videoId/publish").patch(
+    verifyJWT,
+    togglePublishStatus
+);
+
+// Delete video
+router.route("/videos/:videoId/publish").delete(verifyJWT, deleteVideo);
+router.route("/videos").get(getAllVideos)
+
 export {router}
 
 

@@ -5,6 +5,107 @@ import  {ApiError} from "../utils/apiError.js";
 import { uploadOnCloudinary } from "../utils/cloudnary.js";
 import { User } from "../models/user.model.js";
 
+const getAllVideos = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+
+    // Convert page and limit to numbers
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+
+    // Calculate skip value for pagination
+    const skip = (pageNumber - 1) * limitNumber;
+
+    // Prepare filter object
+    const filter = {
+        isPublished: true
+    };
+
+    // Add search query if provided
+    if (query) {
+        filter.$or = [
+            { title: { $regex: query, $options: 'i' } },
+            { description: { $regex: query, $options: 'i' } }
+        ];
+    }
+
+    // Add userId filter if provided
+    if (userId) {
+        filter.owner = new mongoose.Types.ObjectId(userId);
+    }
+
+    // Prepare sort object
+    const sortObject = {};
+    if (sortBy && sortType) {
+        sortObject[sortBy] = sortType.toLowerCase() === 'desc' ? -1 : 1;
+    } else {
+        // Default sort by createdAt DESC
+        sortObject.createdAt = -1;
+    }
+
+    const pipeline = [
+        {
+            $match: filter
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails"
+            }
+        },
+        {
+            $addFields: {
+                ownerDetails: { $arrayElemAt: ["$ownerDetails", 0] }
+            }
+        },
+        {
+            $project: {
+                videoFile: 1,
+                thumbnail: 1,
+                title: 1,
+                description: 1,
+                duration: 1,
+                views: 1,
+                createdAt: 1,
+                owner: {
+                    _id: "$ownerDetails._id",
+                    username: "$ownerDetails.username",
+                    fullName: "$ownerDetails.fullName",
+                    avatar: "$ownerDetails.avatar"
+                }
+            }
+        },
+        {
+            $sort: sortObject
+        },
+        {
+            $skip: skip
+        },
+        {
+            $limit: limitNumber
+        }
+    ];
+
+    // Get total count for pagination
+    const totalVideos = await Video.countDocuments(filter);
+
+    // Execute aggregation pipeline
+    const videos = await Video.aggregate(pipeline);
+
+    return res.status(200).json({
+        success: true,
+        data: {
+            videos,
+            pagination: {
+                currentPage: pageNumber,
+                totalPages: Math.ceil(totalVideos / limitNumber),
+                totalVideos,
+                perPage: limitNumber
+            }
+        }
+    });
+});
 const uploadVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body;
     
@@ -100,51 +201,62 @@ const getVideoById = asyncHandler(async (req, res) => {
         }
     });
 })
-
-  
-   
-
-
-const updateVideo =asyncHandler(async(req,res)=>{
-       const { videoId } = req.params;
-    const localPath = req.files?.videoFile?.[0]?.path;
-    if(!localPath){
-        throw new ApiError(400, "Video file is required");
-    }
-    const videoFile = await uploadOnCloudinary(localPath);
-    if(!videoFile){
-        throw new ApiError(500, "Error uploading video to cloudinary");
-    }
-    const video = await Video.findByIdAndUpdate(
-     videoId,
-        {
-            $set: {
-                videoFile: videoFile.url,
-                title: req.body.title,
-                description: req.body.description,
-            }
-        },
-        {new: true})
-    if (!video) {
+const updateVideo = asyncHandler(async(req, res) => {
+    const {videoId} = req.params;
+    const {title, description} = req.body;
+    
+    // Check if video exists first
+    const existingVideo = await Video.findById(videoId);
+    if (!existingVideo) {
         throw new ApiError(404, "Video not found");
     }
-    return res.status(200).json({
-        message: "Video updated successfully",
-        data: {
-            video
-        }
-    });
 
-})
+    // Initialize update object
+    const updateFields = {};
+    
+    // Handle optional fields
+    if (title) updateFields.title = title;
+    if (description) updateFields.description = description;
+    
+    // Handle video file if uploaded
+    if (req.file) {
+        const videoFile = await uploadOnCloudinary(req.file.path);
+        if (!videoFile) {
+            
+            throw new ApiError(500, "Error uploading video to cloudinary");
+        }
+        updateFields.videoFile = videoFile.url;
+    }
+
+    const video = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: updateFields
+        },
+        {new: true}
+    );
+
+    return res.status(200).json({
+        success: true,
+        message: "Video updated successfully",
+        data: video
+    });
+});
 const updateThumbnail = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
 
-    const localPath = req.files?.thumbnail?.[0]?.path;
-    if (!localPath) {
-        throw new ApiError(400, "Thumbnail is required");
+    // Check if video exists
+    const existingVideo = await Video.findById(videoId);
+    if (!existingVideo) {
+        throw new ApiError(404, "Video not found");
     }
 
-    const thumbnailFile = await uploadOnCloudinary(localPath);
+    // Check if file exists in request
+    if (!req.file) {
+        throw new ApiError(400, "Thumbnail file is required");
+    }
+
+    const thumbnailFile = await uploadOnCloudinary(req.file.path);
     if (!thumbnailFile) {
         throw new ApiError(500, "Error uploading thumbnail to Cloudinary");
     }
@@ -153,20 +265,68 @@ const updateThumbnail = asyncHandler(async (req, res) => {
         videoId, 
         {
             $set: {
-                thumbnail: thumbnailFile.url,
-            },
+                thumbnail: thumbnailFile.url
+            }
         },
         { new: true }
     );
 
-    if (!updatedVideo) {
+    return res.status(200).json({
+        success: true,
+        message: "Thumbnail updated successfully",
+        data: updatedVideo
+    });
+});
+const deleteVideo = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video ID");
+    }
+
+    const video = await Video.findById(videoId);
+    if (!video) {
         throw new ApiError(404, "Video not found");
     }
 
+    if (video.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "Unauthorized to delete this video");
+    }
+
+    await Video.findByIdAndDelete(videoId);
+
     return res.status(200).json({
-        message: "Thumbnail updated successfully",
-        data: updatedVideo,
+        success: true,
+        message: "Video deleted successfully"
     });
 });
+const togglePublishStatus = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
 
-export { uploadVideo, getVideoById,updateVideo, updateThumbnail}
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video ID");
+    }
+
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+     if (video.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "Unauthorized to modify this video");
+    }
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: {
+                isPublished: !video.isPublished
+            }
+        },
+        { new: true }
+    );
+
+    return res.status(200).json({
+        success: true,
+        message: `Video ${updatedVideo.isPublished ? 'published' : 'unpublished'} successfully`,
+    });
+});
+export {getAllVideos, uploadVideo, getVideoById,updateVideo, updateThumbnail,deleteVideo,togglePublishStatus}
