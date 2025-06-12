@@ -10,6 +10,10 @@ const tweetSchema = new Schema({
         ref: "User",
         required: true,
     },
+     video: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Video"
+    },
     likes: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Like",

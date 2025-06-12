@@ -1,8 +1,7 @@
-import { Comment } from "../models/comment.models";
-import { User } from "../models/user.model";
-import { Video } from "../models/video.model";
-import { ApiError } from "../utils/apiError";
-import { asyncHandler } from "../utils/asyncHandler";
+import { Comment } from "../models/comment.models.js";
+import { Video } from "../models/video.model.js";
+import { ApiError } from "../utils/apiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getAllComment = asyncHandler (async(req,res)=>{
     const {videoId} = req.params
@@ -38,7 +37,7 @@ const getAllComment = asyncHandler (async(req,res)=>{
 });
 const addComment = asyncHandler(async(req,res)=>{
    const {content}=req.body
-   const {videoId}=req.psrsms
+   const {videoId}=req.params
    if(!content || !videoId){
     throw new ApiError(200,"content and video id is required")
    }
@@ -68,7 +67,7 @@ const addComment = asyncHandler(async(req,res)=>{
 const updateComment = asyncHandler(async(req,res)=>{
     const {commentId}=req.params
     const {content}=req.body;
-     if(!content||commentId){
+     if(!content|| !commentId){
         throw new ApiError("200","content and tweetId is necessary")
     }
     const comment = await Comment.findById(commentId)
@@ -76,11 +75,14 @@ const updateComment = asyncHandler(async(req,res)=>{
     if (!comment) {
         throw new ApiError(404, "Comment not found");
     }
-    const updatedcomment = await Comment.findByIdAndUpdate(comment,{
+     if (comment.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to update this comment")
+    }
+    const updatedcomment = await Comment.findByIdAndUpdate(commentId,{
         $set:{
             content
         }
-    },{new:true}.populate("video","title"))
+    },{new:true}).populate("video","title")
     if(!updatedcomment){
         throw new ApiError(200,"video is not found")
     }
@@ -92,13 +94,16 @@ const updateComment = asyncHandler(async(req,res)=>{
 })
 const deletedComment = asyncHandler(async(req,res)=>{
     const {commentId}=req.params
-     if(commentId){
+     if(!commentId){
         throw new ApiError("200","commentId is necessary")
     }
      const comment = await Comment.findById(commentId)
       
     if (!comment) {
         throw new ApiError(404, "Comment not found");
+    }
+      if (comment.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to update this comment")
     }
     await  Comment.findByIdAndDelete(commentId)
     return res 
@@ -109,4 +114,9 @@ const deletedComment = asyncHandler(async(req,res)=>{
     })
 
 })
-export {getAllComment,addComment,updateComment,deletedComment}
+export {
+    getAllComment,
+    addComment,
+    updateComment,
+    deletedComment
+}

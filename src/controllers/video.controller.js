@@ -110,18 +110,18 @@ const uploadVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body;
     
     if (!title || !description) {
-        throw new ApiError(400, "Title and description are required");
+        throw new ApiError(404, "Title and description are required");
     }
 
     const videoLocalPath = req.files?.videoFile?.[0]?.path;
     const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path;
 
     if (!videoLocalPath) {
-        throw new ApiError(400, "Video file is required");
+        throw new ApiError(401, "Video file is required");
     }
 
     if (!thumbnailLocalPath) {
-        throw new ApiError(400, "Thumbnail is required");
+        throw new ApiError(402, "Thumbnail is required");
     }
 
     const videoFile = await uploadOnCloudinary(videoLocalPath);
@@ -329,4 +329,12 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         message: `Video ${updatedVideo.isPublished ? 'published' : 'unpublished'} successfully`,
     });
 });
-export {getAllVideos, uploadVideo, getVideoById,updateVideo, updateThumbnail,deleteVideo,togglePublishStatus}
+export {
+    getAllVideos,
+     uploadVideo,
+     getVideoById,
+     updateVideo,
+      updateThumbnail,
+      deleteVideo,
+      togglePublishStatus
+    }

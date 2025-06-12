@@ -4,6 +4,9 @@ import {router} from './routes/user.routes.js'
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { tweetRouter } from './routes/tweet.routes.js';
+import { likeRouter } from './routes/like.routes.js';
+import { commentRouter } from './routes/comment.routes.js';
 
 
 const app = express();
@@ -36,6 +39,11 @@ const _dirname = path.dirname(_filename);
 // Static files middleware
 app.use("/files", express.static(path.join(_dirname, "../")));
 app.use('/api/v1/users', router);
+app.use("/api/v1/tweets", tweetRouter)
+app.use("/api/v1/likes",likeRouter)
+app.use("/api/v1/comments",commentRouter)
+// app.use("api/v1/playlists")
+
 
 
 export default app;

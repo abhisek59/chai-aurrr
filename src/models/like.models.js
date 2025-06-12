@@ -5,8 +5,7 @@ import mongoose,{Schema} from "mongoose";
 const likeSchema = new Schema({
     comment:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Comment",
-        required:true   
+        ref:"Comment"
     },
     video:{
         type:mongoose.Schema.Types.ObjectId,

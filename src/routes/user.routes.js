@@ -2,7 +2,7 @@ import { Router } from "express";
 import { loginUser, logoutUser, registerUser,accessRefreshToken, changeCurrentPassword, getCurrentUser, updateUserAvatar, updateUserCoverImage, getUserChannelProfile, getWatchHistory, updateAccountDetails } from "../controllers/user.controller.js";
 import {upload} from "../middlewears/multer.middlewear.js";
 import { verifyJWT } from "../middlewears/auth.middleweas.js";
-import { User } from "../models/user.model.js";
+import { User } from "../models/user.model.js";``
 import { deleteVideo, getAllVideos, getVideoById, togglePublishStatus, updateThumbnail, updateVideo, uploadVideo } from "../controllers/video.controller.js";
 const router = Router();
 
