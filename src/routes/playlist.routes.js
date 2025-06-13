@@ -34,11 +34,16 @@
 // export { playlistRouter };
 
 import { Router } from "express";
-import { verifyJWT } from "../middlewears/auth.middleweas";
-import { createPlaylist } from "../controllers/playlist.controller";
+import { verifyJWT } from "../middlewears/auth.middleweas.js";
+import { addVideoToPlaylist, createPlaylist, deletePlaylist, getPlaylistById, getUserPlaylist, removeVideoFromPlaylist, updatePlaylist } from "../controllers/playlist.controller.js";
 const playlistRouter = Router()
 
 //create playlist
 playlistRouter.route("/createPlaylist").post(verifyJWT, createPlaylist);
-
+playlistRouter.route("/getUserPlaylist/:userId").get(verifyJWT,getUserPlaylist)
+playlistRouter.route("/getPlaylistById/:playlistId").get(verifyJWT,getPlaylistById)
+playlistRouter.route("/:playlistId/videos/:videoId").post(verifyJWT,addVideoToPlaylist)
+playlistRouter.route("/:playlistId/videos/:videoId").delete(verifyJWT,removeVideoFromPlaylist)
+playlistRouter.route("/:playlistId/delete").delete(verifyJWT,deletePlaylist)
+playlistRouter.route("/:playlistId/updatePlaylist").patch(verifyJWT,updatePlaylist)
 export {playlistRouter}
